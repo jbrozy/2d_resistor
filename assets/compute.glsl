@@ -24,73 +24,57 @@ float luminance(vec3 v) {
 void main() {
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
-	if (x >= width || y >= height) return;
+
+	if (x == 0 || y == 0 || x >= width - 1 || y >= height - 1) {
+		if (x < width && y < height) write[y * width + x] = 0.0;
+		return;
+	}
 
 	uint idx = (y * width + x);
 
 	float threshold = 50.0 / 255.0;
 
-	uint data = pixels[(y * width) + x];
-	float r = float(data & 0xFFu) / 255.0;
-	float g = float((data >> 8u) & 0xFFu) / 255.0;
-	float b = float((data >> 16u) & 0xFFu) / 255.0;
-	float a = float((data >> 16u) & 0xFFu) / 255.0;
+	vec4 color = unpackUnorm4x8(pixels[idx]);
 
-	float brightness = (r + g + b) / 3.0;
-	bool isWall = (brightness < 0.2 && a > 0.1);
-	if (a < 0.1) {
+	float brightness = (color.r + color.g + color.b) / 3.0;
+	bool is_wall = (brightness < 0.2) || (color.a < 0.1);
+
+	if (is_wall) {
 		write[idx] = 0.0;
 		return;
 	}
-	if (isWall) {
-		write[idx] = 0.0;
+	if (color.r > 0.5 && color.g < 0.2 && color.b < 0.2) {
+		write[idx] = 1.0; 
 		return;
 	}
-	if (r > 0.2 && r > g && r > b) {
-		write[idx] = 1.0;
-		return;
-	}
-
-	if (b > 0.2 && b > r && b > g) {
+	if (color.b > 0.5 && color.r < 0.2 && color.g < 0.2) {
 		write[idx] = 0.0;
 		return;
 	}
 
-	if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
-		float totalVoltage = 0.0;
-	    	float totalWeight = 0.0;
-		for (int dy = -1; dy <= 1; dy++) {
-		for (int dx = -1; dx <= 1; dx++) {
-		    
-		    if (dx == 0 && dy == 0) continue;
+	float total_voltage = 0.0;
+	float total_weight = 0.0;
 
-		    int nx = int(x) + dx;
-		    int ny = int(y) + dy;
+	for (int dy = -1; dy <= 1; dy++) {
+        int neighbor_y_offset = (int(y) + dy) * width; 
+        
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            int n_idx = neighbor_y_offset + (int(x) + dx);
+            vec4 n_color = unpackUnorm4x8(pixels[n_idx]);
+            
+            if ((n_color.r + n_color.g + n_color.b) > 0.1) {
+                float weight = (abs(dx * dy) == 1) ? 0.707 : 1.0;
+                
+                total_voltage += read[n_idx] * weight;
+                total_weight += weight;
+            }
+        }
 
-		    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-			uint nIdx = ny * width + nx;
-
-			uint nData = pixels[nIdx];
-			float nR = float(nData & 0xFFu); // 0..255
-			float nG = float((nData >> 8u) & 0xFFu);
-			float nB = float((nData >> 16u) & 0xFFu);
-			
-			if ((nR + nG + nB) > 10.0) {
-			    
-			    float weight = (abs(dx) + abs(dy) == 2) ? 0.7071 : 1.0;
-
-			    totalVoltage += read[nIdx] * weight;
-			    totalWeight += weight;
-			}
-		    }
-		}
-	    }
-	    if (totalWeight > 0.0) {
-		write[idx] = totalVoltage / totalWeight;
-	    } else {
-		write[idx] = read[idx];
-	    }
+	if (total_weight > 0.0) {
+		write[idx] = total_voltage / total_weight;
 	} else {
-		write[idx] = 0.0;
+		write[idx] = read[idx] * 0.99;
 	}
+    }
 }

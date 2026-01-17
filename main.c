@@ -15,7 +15,7 @@ PFNGLGETBUFFERSUBDATAPROC glGetBufferSubDataPtr = NULL;
 #define GL_SHADER_STORAGE_BARRIER_BIT 0x00002000
 #define GL_SHADER_STORAGE_BUFFER 0x90D2
 
-#define SCALE 4.0
+#define SCALE 2.0
 
 int main(int argc, char** argv) {
 	SetTargetFPS(60);
