@@ -12,13 +12,8 @@ PFNGLMEMORYBARRIERPROC glMemoryBarrierPtr = NULL;
 typedef void (*PFNGLGETBUFFERSUBDATAPROC)(unsigned int target, long int offset, long int size, void *data);
 PFNGLGETBUFFERSUBDATAPROC glGetBufferSubDataPtr = NULL;
 
-#ifndef GL_SHADER_STORAGE_BARRIER_BIT
-    #define GL_SHADER_STORAGE_BARRIER_BIT 0x00002000
-#endif
-
-#ifndef GL_SHADER_STORAGE_BUFFER
-    #define GL_SHADER_STORAGE_BUFFER 0x90D2
-#endif
+#define GL_SHADER_STORAGE_BARRIER_BIT 0x00002000
+#define GL_SHADER_STORAGE_BUFFER 0x90D2
 
 #define SCALE 4.0
 
@@ -121,7 +116,7 @@ int main(int argc, char** argv) {
 			SetShaderValue(compute_shader, compute_shader_width, &image_width, SHADER_UNIFORM_INT);
 			SetShaderValue(compute_shader, compute_shader_height, &image_height, SHADER_UNIFORM_INT);
 
-			for (int i = 0; i < 1024; ++i) {
+			for (int i = 0; i < 512; ++i) {
 				rlBindShaderBuffer(ssbo_image, 0);
 				rlBindShaderBuffer(ssbo_read, 1);
 				rlBindShaderBuffer(ssbo_write, 2);
